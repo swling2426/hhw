@@ -1,0 +1,44 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install apt packages
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-11-jdk git python3-pip python3-setuptools unzip zlib1g-dev build-essential libffi-dev libssl-dev
+
+      - name: Install buildozer and cython
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --user buildozer cython
+          echo "::add-path::$HOME/.local/bin"
+
+      - name: Ensure ~/.local/bin in PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build APK (debug)
+        run: |
+          # show buildozer version
+          buildozer --version || true
+          # run build
+          buildozer -v android debug
+        timeout-minutes: 120
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hhw-apk
+          path: bin/*.apk
+
